@@ -1,0 +1,15 @@
+{
+  "name": "pmrpc",
+  "main": "lib/index.js",
+  "module": "lib/index.esm.js",
+  "version": "0.1.0",
+  "description": "JSON RPC over PostMessage",
+  "repository": "https://github.com/statianzo/pmrpc",
+  "author": "statianzo",
+  "license": "ISC",
+  "devDependencies": {
+    "rollup": "^0.65.2",
+    "rollup-plugin-typescript2": "^0.17.0",
+    "typescript": "^3.0.3"
+  }
+}
