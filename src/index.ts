@@ -1,1 +1,1 @@
-export default () => console.log('yolo');
+export {default as Server} from './server';
