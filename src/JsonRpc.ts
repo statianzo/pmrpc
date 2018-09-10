@@ -11,7 +11,7 @@ export const enum ErrorCodes {
 type Methods = {[key: string]: Function};
 type JsonRpcResult = any;
 
-interface ServerConfig {
+interface JsonRpcConfig {
   methods?: Methods;
 }
 
@@ -53,14 +53,14 @@ const buildErrorResponse = (id: string) => (error: {
   },
 });
 
-class Server {
+class JsonRpc {
   private methods: Methods;
 
-  constructor({methods}: ServerConfig) {
+  constructor({methods}: JsonRpcConfig) {
     this.methods = methods || {};
   }
 
-  dispatch(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+  handle(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     return Promise.resolve()
       .then(() => {
         const method = this.methods[request.method];
@@ -75,4 +75,4 @@ class Server {
   }
 }
 
-export default Server;
+export default JsonRpc;

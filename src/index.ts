@@ -1,1 +1,1 @@
-export {default as Server} from './server';
+export {default} from './JsonRpc';

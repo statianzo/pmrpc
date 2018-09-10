@@ -1,7 +1,7 @@
-import Server, {ErrorCodes} from './server';
+import JsonRpc, {ErrorCodes} from './JsonRpc';
 
-it('dispatches requests', async () => {
-  const server = new Server({
+it('handles requests', async () => {
+  const rpc = new JsonRpc({
     methods: {
       hello: () => 'goodbye',
     },
@@ -13,7 +13,7 @@ it('dispatches requests', async () => {
     method: 'hello'
   };
 
-  const response = await server.dispatch(request);
+  const response = await rpc.handle(request);
   expect(response).toEqual({
     jsonrpc: '2.0',
     id: '123',
@@ -22,7 +22,7 @@ it('dispatches requests', async () => {
 });
 
 it('waits on promise results', async () => {
-  const server = new Server({
+  const rpc = new JsonRpc({
     methods: {
       deferred: () => Promise.resolve('deferredResult'),
     },
@@ -34,12 +34,12 @@ it('waits on promise results', async () => {
     method: 'deferred'
   };
 
-  const response = await server.dispatch(request);
+  const response = await rpc.handle(request);
   expect(response.result).toEqual('deferredResult');
 });
 
 it('errors on missing method', async () => {
-  const server = new Server({});
+  const rpc = new JsonRpc({});
 
   const request = {
     id: '123',
@@ -47,13 +47,13 @@ it('errors on missing method', async () => {
     method: 'missing'
   };
 
-  const response = await server.dispatch(request);
+  const response = await rpc.handle(request);
   expect(response.id).toEqual('123');
   expect(response.error.code).toEqual(ErrorCodes.MethodNotFound);
 });
 
 it('errors on throwing method', async () => {
-  const server = new Server({
+  const rpc = new JsonRpc({
     methods: {
       blowUp: () => {
         throw Error('BOOM!');
@@ -67,7 +67,7 @@ it('errors on throwing method', async () => {
     method: 'blowUp',
   };
 
-  const response = await server.dispatch(request);
+  const response = await rpc.handle(request);
   expect(response.id).toEqual('123');
   expect(response.error.code).toEqual(ErrorCodes.InternalError);
 });
