@@ -1,4 +1,15 @@
-type Methods = {[key : string]: Function };
+const VERSION = '2.0';
+
+export const enum ErrorCodes {
+  ParseError = -32700,
+  InvalidRequest = -32600,
+  MethodNotFound = -32601,
+  InvalidParams = -32602,
+  InternalError = -32603,
+}
+
+type Methods = {[key: string]: Function};
+type JsonRpcResult = any;
 
 interface ServerConfig {
   methods?: Methods;
@@ -20,25 +31,47 @@ interface JsonRpcRequest {
 interface JsonRpcResponse {
   jsonrpc: string;
   id: string;
-  result: any;
-  error?: any;
-  params?: any[] | object;
+  result?: JsonRpcResult;
+  error?: JsonRpcError;
 }
 
-class Server {
-  private methods : Methods;
+const buildResponse = (id: string) => (result: JsonRpcResult) => ({
+  jsonrpc: VERSION,
+  id,
+  result,
+});
 
-  constructor({methods} : ServerConfig) {
+const buildErrorResponse = (id: string) => (error: {
+  code?: ErrorCodes;
+  rpcMessage?: string;
+}) => ({
+  jsonrpc: VERSION,
+  id,
+  error: {
+    code: error.code || ErrorCodes.InternalError,
+    message: error.rpcMessage || null,
+  },
+});
+
+class Server {
+  private methods: Methods;
+
+  constructor({methods}: ServerConfig) {
     this.methods = methods || {};
   }
 
-  dispatch(request : JsonRpcRequest) : JsonRpcResponse {
-    const method = this.methods[request.method];
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result: method.apply(null, request.params)
-    }
+  dispatch(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    return Promise.resolve()
+      .then(() => {
+        const method = this.methods[request.method];
+        return method
+          ? method.apply(null, request.params)
+          : Promise.reject({
+              code: ErrorCodes.MethodNotFound,
+              rpcMessage: 'Method not found',
+            });
+      })
+      .then(buildResponse(request.id), buildErrorResponse(request.id));
   }
 }
 
