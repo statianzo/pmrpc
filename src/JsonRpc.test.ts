@@ -3,76 +3,68 @@ import JsonRpc, {ErrorCodes} from './JsonRpc';
 const defer = (ms: number, val?: any) =>
   new Promise(resolve => setTimeout(() => resolve(val), ms));
 
-it('handles requests', async () => {
-  const rpc = new JsonRpc({
-    methods: {
-      hello: () => 'goodbye',
-    },
+describe('handling requests', () => {
+  let rpc: any;
+  const buildRequest = (method: string, params?: any[] | object) => ({
+    jsonrpc: '2.0',
+    id: 123,
+    method,
+    params,
   });
 
-  const request = {
-    id: 123,
-    jsonrpc: '2.0',
-    method: 'hello',
-  };
-
-  const response = await (rpc as any).handleRequest(request);
-  expect(response).toEqual({
-    jsonrpc: '2.0',
-    id: 123,
-    result: 'goodbye',
-  });
-});
-
-it('waits on promise results', async () => {
-  const rpc = new JsonRpc({
-    methods: {
-      deferred: () => Promise.resolve('deferredResult'),
-    },
-  });
-
-  const request = {
-    id: 123,
-    jsonrpc: '2.0',
-    method: 'deferred',
-  };
-
-  const response = await (rpc as any).handleRequest(request);
-  expect(response.result).toEqual('deferredResult');
-});
-
-it('errors on missing method', async () => {
-  const rpc = new JsonRpc();
-
-  const request = {
-    id: 123,
-    jsonrpc: '2.0',
-    method: 'missing',
-  };
-
-  const response = await (rpc as any).handleRequest(request);
-  expect(response.id).toEqual(123);
-  expect(response.error.code).toEqual(ErrorCodes.MethodNotFound);
-});
-
-it('errors on throwing method', async () => {
-  const rpc = new JsonRpc({
-    methods: {
-      blowUp: () => {
-        throw Error('BOOM!');
+  beforeEach(() => {
+    rpc = new JsonRpc({
+      methods: {
+        hello: (name: string) => `goodbye ${name}`,
+        canVote: (voter: {age: number}) => voter.age > 18,
+        deferred: () => Promise.resolve('deferredResult'),
+        blowUp: () => {
+          throw Error('BOOM!');
+        },
       },
-    },
+    });
   });
 
-  const request = {
-    id: 123,
-    jsonrpc: '2.0',
-    method: 'blowUp',
-  };
+  it('handles array params', async () => {
+    const request = buildRequest('hello', ['Alice']);
+    const response = await rpc.handleRequest(request);
 
-  const response = await (rpc as any).handleRequest(request);
-  expect(response.id).toEqual(123);
-  expect(response.error.code).toEqual(ErrorCodes.InternalError);
+    expect(response.jsonrpc).toEqual('2.0');
+    expect(response.id).toEqual(request.id);
+    expect(response.result).toEqual('goodbye Alice');
+  });
+
+  it('handles object params', async () => {
+    const request = buildRequest('canVote', {age: 22});
+    const response = await rpc.handleRequest(request);
+
+    expect(response.jsonrpc).toEqual('2.0');
+    expect(response.id).toEqual(request.id);
+    expect(response.result).toEqual(true);
+  });
+
+  it('waits on promise results', async () => {
+    const request = buildRequest('deferred');
+    const response = await rpc.handleRequest(request);
+
+    expect(response.result).toEqual('deferredResult');
+  });
+
+  it('errors on missing method', async () => {
+    const request = buildRequest('missing');
+    const response = await rpc.handleRequest(request);
+
+    expect(response.id).toEqual(request.id);
+    expect(response.error.code).toEqual(ErrorCodes.MethodNotFound);
+  });
+
+  it('errors on throwing method', async () => {
+    const request = buildRequest('blowUp');
+    const response = await rpc.handleRequest(request);
+
+    expect(response.id).toEqual(request.id);
+    expect(response.error.code).toEqual(ErrorCodes.InternalError);
+  });
 });
 
 describe('mounted', () => {

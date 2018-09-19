@@ -59,6 +59,9 @@ const buildErrorResponse = (id: number) => (error: {
   },
 });
 
+const ensureArray = (source: any) =>
+  Array.isArray(source) ? source : [source];
+
 class JsonRpc {
   private methods: Methods;
   private destination: JsonRpcDestination;
@@ -91,12 +94,21 @@ class JsonRpc {
     return promise;
   }
 
+  mount(source: EventTarget) {
+    this.source = source;
+    source.addEventListener('message', this.handleMessage);
+  }
+
+  unmount() {
+    this.source.removeEventListener('message', this.handleMessage);
+  }
+
   private handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     return Promise.resolve()
       .then(() => {
         const method = this.methods[request.method];
         return method
-          ? method.apply(null, request.params)
+          ? method.apply(null, ensureArray(request.params))
           : Promise.reject({
               code: ErrorCodes.MethodNotFound,
               message: 'Method not found',
@@ -132,15 +144,6 @@ class JsonRpc {
       this.handleResponse(e.data);
     }
   };
-
-  mount(source: EventTarget) {
-    this.source = source;
-    source.addEventListener('message', this.handleMessage);
-  }
-
-  unmount() {
-    this.source.removeEventListener('message', this.handleMessage);
-  }
 }
 
 export default JsonRpc;
