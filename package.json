@@ -7,6 +7,9 @@
   "repository": "https://github.com/statianzo/pmrpc",
   "author": "statianzo",
   "license": "ISC",
+  "scripts": {
+    "test": "jest"
+  },
   "devDependencies": {
     "@types/jest": "^23.3.1",
     "jest": "^23.5.0",

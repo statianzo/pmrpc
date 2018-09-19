@@ -8,12 +8,17 @@ export const enum ErrorCodes {
   InternalError = -32603,
 }
 
-type JsonRpcDestination = Window;
+type JsonRpcSource = EventTarget;
+type JsonRpcDestination = MessageEventSource;
 type Methods = {[key: string]: Function};
-type JsonRpcResult = any;
+type Deferred = {resolve: Function; reject: Function};
+type DeferredLookup = {[key: number]: Deferred};
 
 interface JsonRpcConfig {
+  origin?: string;
+  source?: JsonRpcSource;
   methods?: Methods;
+  destination?: JsonRpcDestination;
 }
 
 interface JsonRpcError {
@@ -32,11 +37,11 @@ interface JsonRpcRequest {
 interface JsonRpcResponse {
   jsonrpc: string;
   id: number;
-  result?: JsonRpcResult;
+  result?: any;
   error?: JsonRpcError;
 }
 
-const buildResponse = (id: number) => (result: JsonRpcResult) => ({
+const buildResponse = (id: number) => (result: any) => ({
   jsonrpc: VERSION,
   id,
   result,
@@ -44,28 +49,31 @@ const buildResponse = (id: number) => (result: JsonRpcResult) => ({
 
 const buildErrorResponse = (id: number) => (error: {
   code?: ErrorCodes;
-  rpcMessage?: string;
+  message?: string;
 }) => ({
   jsonrpc: VERSION,
   id,
   error: {
     code: error.code || ErrorCodes.InternalError,
-    message: error.rpcMessage || null,
+    message: error.message,
   },
 });
-
-type Deferred = {resolve: Function; reject: Function};
-type DeferredLookup = {[key : number] : Deferred};
 
 class JsonRpc {
   private methods: Methods;
   private destination: JsonRpcDestination;
+  private source: JsonRpcSource;
   private origin: string;
   private sequence = 0;
-  private deferreds : DeferredLookup = {};
+  private deferreds: DeferredLookup = {};
 
-  constructor({methods}: JsonRpcConfig) {
-    this.methods = methods || {};
+  constructor({methods = {}, source, destination, origin}: JsonRpcConfig = {}) {
+    this.methods = methods;
+    this.destination = destination;
+    this.origin = origin || '*';
+    if (source) {
+      this.mount(source);
+    }
   }
 
   apply(method: string, params?: any[]) {
@@ -73,20 +81,17 @@ class JsonRpc {
     const promise = new Promise((resolve, reject) => {
       this.deferreds[id] = {resolve, reject};
     });
-    this.destination.postMessage(
-      {
-        id,
-        jsonrpc: VERSION,
-        method,
-        params,
-      },
-      this.origin
-    );
+    this.postMessage(this.destination, {
+      id,
+      jsonrpc: VERSION,
+      method,
+      params,
+    });
 
     return promise;
   }
 
-  handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+  private handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     return Promise.resolve()
       .then(() => {
         const method = this.methods[request.method];
@@ -94,39 +99,47 @@ class JsonRpc {
           ? method.apply(null, request.params)
           : Promise.reject({
               code: ErrorCodes.MethodNotFound,
-              rpcMessage: 'Method not found',
+              message: 'Method not found',
             });
       })
       .then(buildResponse(request.id), buildErrorResponse(request.id));
   }
 
-  handleResponse(response: JsonRpcResponse) {
+  private handleResponse(response: JsonRpcResponse) {
     const deferred = this.deferreds[response.id];
     delete this.deferreds[response.id];
     if (!deferred) return;
 
     if (response.result) {
       deferred.resolve(response.result);
-    }
-    else {
+    } else {
       deferred.reject(response.error);
     }
   }
 
-  handleMessage = (e: MessageEvent) => {
+  private postMessage(target: JsonRpcDestination, message: any) {
+    target = target as Window; //Shadow to a Window
+    const isWindow = target.window === target;
+    target.postMessage(message, isWindow ? this.origin : null);
+  }
+
+  private handleMessage = (e: MessageEvent) => {
     if (e.data.method) {
       this.handleRequest(e.data).then(response =>
-        this.destination.postMessage(response, this.origin)
+        this.postMessage(e.source, response)
       );
     } else {
       this.handleResponse(e.data);
     }
   };
 
-  mount(source: EventTarget, destination: JsonRpcDestination, origin: string) {
+  mount(source: EventTarget) {
+    this.source = source;
     source.addEventListener('message', this.handleMessage);
-    this.destination = destination;
-    this.origin = origin;
+  }
+
+  unmount() {
+    this.source.removeEventListener('message', this.handleMessage);
   }
 }
 

@@ -16,7 +16,7 @@ it('handles requests', async () => {
     method: 'hello',
   };
 
-  const response = await rpc.handleRequest(request);
+  const response = await (rpc as any).handleRequest(request);
   expect(response).toEqual({
     jsonrpc: '2.0',
     id: 123,
@@ -37,12 +37,12 @@ it('waits on promise results', async () => {
     method: 'deferred',
   };
 
-  const response = await rpc.handleRequest(request);
+  const response = await (rpc as any).handleRequest(request);
   expect(response.result).toEqual('deferredResult');
 });
 
 it('errors on missing method', async () => {
-  const rpc = new JsonRpc({});
+  const rpc = new JsonRpc();
 
   const request = {
     id: 123,
@@ -50,7 +50,7 @@ it('errors on missing method', async () => {
     method: 'missing',
   };
 
-  const response = await rpc.handleRequest(request);
+  const response = await (rpc as any).handleRequest(request);
   expect(response.id).toEqual(123);
   expect(response.error.code).toEqual(ErrorCodes.MethodNotFound);
 });
@@ -70,7 +70,7 @@ it('errors on throwing method', async () => {
     method: 'blowUp',
   };
 
-  const response = await rpc.handleRequest(request);
+  const response = await (rpc as any).handleRequest(request);
   expect(response.id).toEqual(123);
   expect(response.error.code).toEqual(ErrorCodes.InternalError);
 });
@@ -81,6 +81,13 @@ describe('mounted', () => {
   let rpc1: JsonRpc;
   let rpc2: JsonRpc;
 
+  // Shim to set MessageEvent.source in jsdom
+  const shimHandleSource = (rpc: any, source: object) => {
+    const original = rpc.handleMessage;
+    rpc.handleMessage = (e: MessageEvent) =>
+      original.call(rpc, {data: e.data, source});
+  };
+
   beforeEach(() => {
     frame1 = document.createElement('iframe');
     frame2 = document.createElement('iframe');
@@ -89,17 +96,24 @@ describe('mounted', () => {
 
     rpc1 = new JsonRpc({
       methods: {one: () => 'one'},
+      destination: frame2.contentWindow,
     });
 
     rpc2 = new JsonRpc({
+      destination: frame1.contentWindow,
       methods: {
         greet: (name: string) => `Hello, ${name}`,
-        explode: () => { throw Error('Kapow'); },
-      }
+        explode: () => {
+          throw Error('Kapow');
+        },
+      },
     });
 
-    rpc1.mount(frame1.contentWindow, frame2.contentWindow, '*');
-    rpc2.mount(frame2.contentWindow, frame1.contentWindow, '*');
+    shimHandleSource(rpc1, frame2.contentWindow);
+    shimHandleSource(rpc2, frame1.contentWindow);
+
+    rpc1.mount(frame1.contentWindow);
+    rpc2.mount(frame2.contentWindow);
   });
 
   afterEach(() => {
@@ -114,13 +128,13 @@ describe('mounted', () => {
 
   it('propagates errors between iframes', async () => {
     await expect(rpc1.apply('explode')).rejects.toMatchObject({
-      code: ErrorCodes.InternalError
+      code: ErrorCodes.InternalError,
     });
   });
 
   it('propagates missing between iframes', async () => {
     await expect(rpc1.apply('missing')).rejects.toMatchObject({
-      code: ErrorCodes.MethodNotFound
+      code: ErrorCodes.MethodNotFound,
     });
   });
 });
