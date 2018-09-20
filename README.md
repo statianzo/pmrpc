@@ -45,7 +45,7 @@ rpc
 ## JsonRpc Options
 
 - `origin` - (Default: `*`) Origin to send messages
-- `methods` - (Default: `{}`) An object of exposed methods
+- `methods` - (Default: `{}`) An object of exposed methods. Returning a Promise will defer responding until the promise has completed
 - `source` - The source EventTarget to mount JSON rpc on (`Window`, `MessagePort`, etc)
 - `destination` - Target MessageEventSource to send requests to
 
