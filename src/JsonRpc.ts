@@ -70,7 +70,7 @@ const ensureArray = (source: any) =>
 class JsonRpc {
   private methods: Methods;
   private destination?: JsonRpcDestination;
-  private source: JsonRpcSource;
+  private source?: JsonRpcSource;
   private origin: string;
   private sequence = 0;
   private deferreds: DeferredLookup = {};
@@ -79,8 +79,10 @@ class JsonRpc {
     this.methods = methods;
     this.destination = destination;
     this.origin = origin || '*';
-    if (source) {
-      this.mount(source);
+    this.source = source;
+
+    if (this.source) {
+      this.mount(this.source);
     }
   }
 
@@ -110,7 +112,8 @@ class JsonRpc {
   }
 
   unmount() {
-    this.source.removeEventListener('message', this.handleMessage);
+    this.source &&
+      this.source.removeEventListener('message', this.handleMessage);
   }
 
   private handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
