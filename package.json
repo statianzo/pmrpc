@@ -16,6 +16,8 @@
     "lib/JsonRpc.d.ts"
   ],
   "scripts": {
+    "prepublish": "yarn build",
+    "build": "rollup -c",
     "test": "jest"
   },
   "devDependencies": {
