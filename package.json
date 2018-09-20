@@ -2,11 +2,19 @@
   "name": "pmrpc",
   "main": "lib/index.js",
   "module": "lib/index.esm.js",
+  "types": "lib/index.d.ts",
   "version": "0.1.0",
   "description": "JSON RPC over PostMessage",
   "repository": "https://github.com/statianzo/pmrpc",
   "author": "statianzo",
   "license": "ISC",
+  "files": [
+    "LICENSE",
+    "lib/index.js",
+    "lib/index.esm.js",
+    "lib/index.d.js",
+    "lib/JsonRpc.d.ts"
+  ],
   "scripts": {
     "test": "jest"
   },
