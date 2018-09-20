@@ -106,6 +106,10 @@ class JsonRpc {
     return promise;
   }
 
+  call(method: string, ...rest : any[]) {
+    return this.apply(method, rest);
+  }
+
   mount(source: EventTarget) {
     this.source = source;
     source.addEventListener('message', this.handleMessage);
