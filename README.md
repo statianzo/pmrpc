@@ -1,4 +1,4 @@
-# pmrpc
+# @statianzo/pmrpc
 
 [![Build Status](https://travis-ci.org/statianzo/pmrpc.svg?branch=master)](https://travis-ci.org/statianzo/pmrpc)
 
@@ -7,7 +7,7 @@ JSON-RPC implemented using postMessage API
 ## Installation
 
 ```sh
-npm install pmrpc
+npm install @statianzo/pmrpc
 ```
 
 ## Usage
