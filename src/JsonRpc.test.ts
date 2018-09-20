@@ -85,14 +85,16 @@ describe('mounted', () => {
     frame2 = document.createElement('iframe');
     document.body.appendChild(frame1);
     document.body.appendChild(frame2);
+    const win1 = frame1.contentWindow as MessageEventSource;
+    const win2 = frame2.contentWindow as MessageEventSource;
 
     rpc1 = new JsonRpc({
       methods: {one: () => 'one'},
-      destination: frame2.contentWindow,
+      destination: win2,
     });
 
     rpc2 = new JsonRpc({
-      destination: frame1.contentWindow,
+      destination: win1,
       methods: {
         greet: (name: string) => `Hello, ${name}`,
         explode: () => {
@@ -101,11 +103,11 @@ describe('mounted', () => {
       },
     });
 
-    shimHandleSource(rpc1, frame2.contentWindow);
-    shimHandleSource(rpc2, frame1.contentWindow);
+    shimHandleSource(rpc1, win2);
+    shimHandleSource(rpc2, win1);
 
-    rpc1.mount(frame1.contentWindow);
-    rpc2.mount(frame2.contentWindow);
+    rpc1.mount(win1);
+    rpc2.mount(win2);
   });
 
   afterEach(() => {
@@ -129,4 +131,9 @@ describe('mounted', () => {
       code: ErrorCodes.MethodNotFound,
     });
   });
+});
+
+it('errors when applying without a destination', () => {
+  const rpc = new JsonRpc({});
+  expect(() => rpc.apply('yo')).toThrow('Attempted to apply with no destination');
 });

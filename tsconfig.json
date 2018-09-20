@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "noImplicitAny": true,
+    "strictNullChecks": true,
     "target": "es5",
     "module": "esnext",
     "lib": ["es5", "es2015", "es2016", "dom"]

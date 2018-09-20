@@ -1,5 +1,3 @@
-const VERSION = '2.0';
-
 export const enum ErrorCodes {
   ParseError = -32700,
   InvalidRequest = -32600,
@@ -23,7 +21,7 @@ interface JsonRpcConfig {
 
 interface JsonRpcError {
   code: number;
-  message: string;
+  message?: string;
   data?: any;
 }
 
@@ -40,6 +38,13 @@ interface JsonRpcResponse {
   result?: any;
   error?: JsonRpcError;
 }
+
+const VERSION = '2.0';
+
+const METHOD_NOT_FOUND = {
+  code: ErrorCodes.MethodNotFound,
+  message: 'Method not found',
+};
 
 const buildResponse = (id: number) => (result: any) => ({
   jsonrpc: VERSION,
@@ -64,7 +69,7 @@ const ensureArray = (source: any) =>
 
 class JsonRpc {
   private methods: Methods;
-  private destination: JsonRpcDestination;
+  private destination?: JsonRpcDestination;
   private source: JsonRpcSource;
   private origin: string;
   private sequence = 0;
@@ -80,10 +85,15 @@ class JsonRpc {
   }
 
   apply(method: string, params?: any[]) {
+    if (!this.destination) {
+      throw Error('Attempted to apply with no destination');
+    }
+
     const id = this.sequence++;
     const promise = new Promise((resolve, reject) => {
       this.deferreds[id] = {resolve, reject};
     });
+
     this.postMessage(this.destination, {
       id,
       jsonrpc: VERSION,
@@ -109,10 +119,7 @@ class JsonRpc {
         const method = this.methods[request.method];
         return method
           ? method.apply(null, ensureArray(request.params))
-          : Promise.reject({
-              code: ErrorCodes.MethodNotFound,
-              message: 'Method not found',
-            });
+          : Promise.reject(METHOD_NOT_FOUND);
       })
       .then(buildResponse(request.id), buildErrorResponse(request.id));
   }
@@ -132,7 +139,7 @@ class JsonRpc {
   private postMessage(target: JsonRpcDestination, message: any) {
     target = target as Window; //Shadow to a Window
     const isWindow = target.window === target;
-    target.postMessage(message, isWindow ? this.origin : null);
+    target.postMessage(message, isWindow ? this.origin : (null as any));
   }
 
   private handleMessage = (e: MessageEvent) => {
