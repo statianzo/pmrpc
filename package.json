@@ -18,7 +18,7 @@
   "scripts": {
     "prepublishOnly": "yarn bundle",
     "bundle": "rollup -c",
-    "test": "jest",
+    "test": "jest --verbose",
     "test:unit": "jest --testPathPattern \\.test\\.",
     "test:spec": "jest --testPathPattern \\.spec\\."
   },
