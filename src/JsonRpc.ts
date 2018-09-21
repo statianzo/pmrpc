@@ -146,7 +146,7 @@ class JsonRpc {
   private postMessage(target: JsonRpcDestination, message: any) {
     target = target as Window; //Shadow to a Window
     const isWindow = target.window === target;
-    target.postMessage(message, isWindow ? this.origin : (null as any));
+    target.postMessage(message, isWindow ? this.origin : (undefined as any));
   }
 
   private handleMessage = (e: MessageEvent) => {
