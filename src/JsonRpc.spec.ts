@@ -1,6 +1,7 @@
 import * as puppeteer from 'puppeteer';
 import {rollup} from 'rollup';
 import config from '../rollup.config';
+const launchArgs = process.env.CI === 'true' ? ['--no-sandbox'] : [];
 let browser: puppeteer.Browser;
 let page: puppeteer.Page;
 
@@ -10,7 +11,7 @@ beforeAll(async () => {
     plugins: config['plugins'],
   });
   const {code} = await bundle.generate({format: 'iife', name: 'JsonRpc'});
-  browser = await puppeteer.launch();
+  browser = await puppeteer.launch({args: launchArgs});
   page = await browser.newPage();
   await page.addScriptTag({content: code});
   await page.setContent(`<iframe sandbox="allow-scripts"></iframe>`);
