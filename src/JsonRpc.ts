@@ -106,7 +106,7 @@ class JsonRpc {
     return promise;
   }
 
-  call(method: string, ...rest : any[]) {
+  call(method: string, ...rest: any[]) {
     return this.apply(method, rest);
   }
 
@@ -149,13 +149,18 @@ class JsonRpc {
     target.postMessage(message, isWindow ? this.origin : (undefined as any));
   }
 
-  private handleMessage = (e: MessageEvent) => {
-    if (e.data.method) {
-      this.handleRequest(e.data).then(response =>
-        this.destination && this.postMessage(this.destination, response)
+  private handleMessage = ({data, origin}: MessageEvent) => {
+    if (!data) return;
+    if (data.jsonrpc !== '2.0') return;
+    if (this.origin !== '*' && this.origin !== origin) return;
+
+    if ('method' in data) {
+      this.handleRequest(data).then(
+        response =>
+          this.destination && this.postMessage(this.destination, response)
       );
-    } else {
-      this.handleResponse(e.data);
+    } else if ('result' in data || 'error' in data) {
+      this.handleResponse(data);
     }
   };
 }

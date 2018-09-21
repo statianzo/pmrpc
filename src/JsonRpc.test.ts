@@ -3,14 +3,15 @@ import JsonRpc, {ErrorCodes} from './JsonRpc';
 const defer = (ms: number, val?: any) =>
   new Promise(resolve => setTimeout(() => resolve(val), ms));
 
+const buildRequest = (method: string, params?: any[] | object) => ({
+  jsonrpc: '2.0',
+  id: 123,
+  method,
+  params,
+});
+
 describe('handling requests', () => {
   let rpc: any;
-  const buildRequest = (method: string, params?: any[] | object) => ({
-    jsonrpc: '2.0',
-    id: 123,
-    method,
-    params,
-  });
 
   beforeEach(() => {
     rpc = new JsonRpc({
@@ -18,6 +19,7 @@ describe('handling requests', () => {
         hello: (name: string) => `goodbye ${name}`,
         canVote: (voter: {age: number}) => voter.age > 18,
         deferred: () => Promise.resolve('deferredResult'),
+        spy: jest.fn().mockImplementation(() => 'mock'),
         blowUp: () => {
           throw Error('BOOM!');
         },
@@ -64,6 +66,42 @@ describe('handling requests', () => {
 
     expect(response.id).toEqual(request.id);
     expect(response.error.code).toEqual(ErrorCodes.InternalError);
+  });
+});
+
+describe('invalid messages', () => {
+  let rpc: any;
+  let messageEvent : any;
+
+  beforeEach(() => {
+    rpc = new JsonRpc({
+      methods: {
+        spy: jest.fn().mockImplementation(() => 'mock'),
+      },
+    });
+    messageEvent = {
+      origin: '*',
+      data: buildRequest('spy')
+    };
+  });
+
+  it('ignores messages missing data', async () => {
+    delete messageEvent.data;
+    await rpc.handleMessage(messageEvent);
+    expect(rpc.methods.spy).not.toHaveBeenCalled();
+  });
+
+  it('ignores requests missing jsonrpc', async () => {
+    delete messageEvent.data.jsonrpc;
+    await rpc.handleMessage(messageEvent);
+    expect(rpc.methods.spy).not.toHaveBeenCalled();
+  });
+
+  it('ignores requests with wrong origin', async () => {
+    rpc.origin = 'http://example.com';
+    messageEvent.origin = 'http://fake.com';
+    await rpc.handleMessage(messageEvent);
+    expect(rpc.methods.spy).not.toHaveBeenCalled();
   });
 });
 
