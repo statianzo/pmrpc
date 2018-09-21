@@ -139,7 +139,7 @@ class JsonRpc {
     if (response.result) {
       deferred.resolve(response.result);
     } else {
-      deferred.reject(response.error);
+      deferred.reject(Object.assign(Error(), response.error));
     }
   }
 
@@ -152,7 +152,7 @@ class JsonRpc {
   private handleMessage = (e: MessageEvent) => {
     if (e.data.method) {
       this.handleRequest(e.data).then(response =>
-        this.postMessage(e.source, response)
+        this.destination && this.postMessage(this.destination, response)
       );
     } else {
       this.handleResponse(e.data);

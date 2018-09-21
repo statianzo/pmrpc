@@ -116,7 +116,7 @@ describe('mounted', () => {
   });
 
   it('communicates between iframes', async () => {
-    const result = await rpc1.call('greet', 'Alice');
+    const result = await rpc1.call('greet', ['Alice']);
     expect(result).toEqual(`Hello, Alice`);
   });
 
