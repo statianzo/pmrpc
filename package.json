@@ -18,7 +18,9 @@
   "scripts": {
     "prepublishOnly": "yarn bundle",
     "bundle": "rollup -c",
-    "test": "jest"
+    "test": "jest",
+    "test:unit": "jest --testPathPattern \\.test\\.",
+    "test:spec": "jest --testPathPattern \\.spec\\."
   },
   "devDependencies": {
     "@types/jest": "^23.3.1",
