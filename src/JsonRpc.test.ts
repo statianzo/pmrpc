@@ -111,28 +111,21 @@ describe('mounted', () => {
   let rpc1: JsonRpc;
   let rpc2: JsonRpc;
 
-  // Shim to set MessageEvent.source in jsdom
-  const shimHandleSource = (rpc: any, source: object) => {
-    const original = rpc.handleMessage;
-    rpc.handleMessage = (e: MessageEvent) =>
-      original.call(rpc, {data: e.data, source});
-  };
-
   beforeEach(() => {
     frame1 = document.createElement('iframe');
     frame2 = document.createElement('iframe');
     document.body.appendChild(frame1);
     document.body.appendChild(frame2);
-    const win1 = frame1.contentWindow as MessageEventSource;
-    const win2 = frame2.contentWindow as MessageEventSource;
 
     rpc1 = new JsonRpc({
       methods: {one: () => 'one'},
-      destination: win2,
+      source: frame1.contentWindow as MessageEventSource,
+      destination: frame2.contentWindow as MessageEventSource,
     });
 
     rpc2 = new JsonRpc({
-      destination: win1,
+      destination: frame1.contentWindow as MessageEventSource,
+      source: frame2.contentWindow as MessageEventSource,
       methods: {
         greet: (name: string) => `Hello, ${name}`,
         explode: () => {
@@ -140,12 +133,6 @@ describe('mounted', () => {
         },
       },
     });
-
-    shimHandleSource(rpc1, win2);
-    shimHandleSource(rpc2, win1);
-
-    rpc1.mount(win1);
-    rpc2.mount(win2);
   });
 
   afterEach(() => {
