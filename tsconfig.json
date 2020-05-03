@@ -6,6 +6,25 @@
     "target": "es5",
     "module": "esnext",
     "moduleResolution": "Node",
-    "lib": ["es5", "es2015", "es2016", "dom"]
-  }
+    "declaration": true,
+    "declarationDir": "./lib",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "lib": [
+      "es5",
+      "es2015",
+      "es2016",
+      "dom"
+    ],
+    "outDir": "./lib"
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 }
