@@ -1,4 +1,4 @@
-import * as puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer';
 import {rollup} from 'rollup';
 import config from '../rollup.config';
 const launchArgs = process.env.CI === 'true' ? ['--no-sandbox'] : [];
@@ -10,10 +10,10 @@ beforeAll(async () => {
     input: config['input'],
     plugins: config['plugins'],
   });
-  const {code} = await bundle.generate({format: 'iife', name: 'JsonRpc'});
+  const {output} = await bundle.generate({format: 'iife', name: 'JsonRpc'});
   browser = await puppeteer.launch({args: launchArgs});
   page = await browser.newPage();
-  await page.addScriptTag({content: code});
+  await page.addScriptTag({content: output[0].code});
   await page.setContent(`<iframe sandbox="allow-scripts"></iframe>`);
   await page.evaluate(`
     let resolve;
@@ -28,7 +28,7 @@ beforeAll(async () => {
     });
   `);
   const [, frame] = page.frames();
-  await frame.addScriptTag({content: code});
+  await frame.addScriptTag({content: output[0].code});
   await frame.evaluate(`
     const {port1, port2} = new MessageChannel();
 
